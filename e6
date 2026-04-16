@@ -1,0 +1,79 @@
+from skimage.feature import hog
+from skimage import io, color
+import matplotlib.pyplot as plt
+
+# 1. Load image
+img = io.imread("/content/mug.webp")
+
+# 2. Convert to grayscale
+gray = color.rgb2gray(img)
+
+# 3. Compute HOG + visualization
+features, hog_image = hog(
+    gray,
+    orientations=9,
+    pixels_per_cell=(8, 8),
+    cells_per_block=(2, 2),
+    visualize=True
+)
+
+# 4. Display
+plt.figure(figsize=(10, 4))
+
+plt.subplot(1, 2, 1)
+plt.imshow(gray, cmap='gray')
+plt.title("Original Image")
+plt.axis("off")
+
+plt.subplot(1, 2, 2)
+plt.imshow(hog_image, cmap='gray')
+plt.title("HOG Visualization")
+plt.axis("off")
+
+plt.show()
+
+
+import cv2
+import matplotlib.pyplot as plt
+
+# Read image
+img = cv2.imread("/content/sap.jpg")
+gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+# Create SIFT detector
+sift = cv2.SIFT_create()
+
+# Detect keypoints and descriptors
+keypoints, descriptors = sift.detectAndCompute(gray, None)
+
+# Draw keypoints
+img_kp = cv2.drawKeypoints(img, keypoints, None)
+
+# Show
+plt.imshow(cv2.cvtColor(img_kp, cv2.COLOR_BGR2RGB))
+plt.title("SIFT Keypoints")
+plt.axis("off")
+plt.show()
+
+#SURF
+import cv2
+import matplotlib.pyplot as plt
+
+img = cv2.imread(r"C:\\Users\\nettz\\OneDrive\\Documents\\labCV\\test_project\\mug.webp")
+gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+# Create SURF detector
+surf = cv2.xfeatures2d.SURF_create(400)
+
+# Detect keypoints and descriptors
+keypoints, descriptors = surf.detectAndCompute(gray, None)
+
+# Draw keypoints
+img_kp = cv2.drawKeypoints(img, keypoints, None)
+
+plt.imshow(cv2.cvtColor(img_kp, cv2.COLOR_BGR2RGB))
+plt.title("SURF Keypoints")
+plt.axis("off")
+plt.show()
+
+#pip install opencv-contrib-python
