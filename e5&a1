@@ -1,0 +1,94 @@
+For feature learning based feature extraction and image classification (or) the transfer learning based image classification
+
+import os
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.preprocessing.image import ImageDataGenerator, load_img, img_to_array
+from tensorflow.keras.models import load_model
+import tensorflow.keras.backend as K
+
+from io import BytesIO
+from PIL import Image
+import cv2
+
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+from matplotlib import colors
+import requests
+
+# Set the learning phase to not training
+# K.set_learning_phase(0)
+
+model = load_model('/content/drive/MyDrive/tranfer_learning_inceptionv3_fish_disease.keras')
+
+# Set the image generator
+eval_datagen = ImageDataGenerator(rescale=1./255)
+eval_dir = '/content/drive/MyDrive/Fish_Disease_Project_Backup/Freshwater Fish Disease Aquaculture in south asia/Test'
+eval_generator = eval_datagen.flow_from_directory(eval_dir, target_size=(299, 299),batch_size=32, class_mode='categorical')
+
+# Evaluate the model (evaluate replaces evaluate_generator)
+loss = model.evaluate(eval_generator, steps=10)
+for index, name in enumerate(model.metrics_names):
+    print(name, loss[index])
+
+# Utility functions
+classes = [
+    'Bacterial Red disease',
+    'Bacterial diseases - Aeromoniasis',
+    'Bacterial gill disease',
+    'Fungal diseases Saprolegniasis',
+    'Healthy Fish',
+    'Parasitic diseases',
+    'Viral diseases White tail disease'
+]
+
+def preprocess_input(x):
+    x = img_to_array(x) / 255.
+    return np.expand_dims(x, axis=0)
+
+def predict_from_image_path(image_path):
+    return predict_image(load_img(image_path, target_size=(299, 299)))
+
+def predict_from_image_url(image_url):
+    res = requests.get(image_url)
+    im = Image.open(BytesIO(res.content))
+    # Note: passing PIL image directly to load_img context isn't standard,
+    # but kept the structure similar. Better to use im.resize((299,299))
+    return predict_image(im.resize((299,299)))
+
+def predict_image(im):
+    x = preprocess_input(im)
+    pred = np.archrogmax(model.predict(x))
+    return pred, classes[pred]
+
+!pip install tf-explain
+model = load_model('/content/drive/MyDrive/tranfer_learning_inceptionv3_fish_disease.keras')
+
+from tf_explain.core.grad_cam import GradCAM
+def grad_CAM(image_path):
+    img = cv2.imread(image_path)
+    img = cv2.resize(img, (299, 299))
+    plt.imshow(img)
+    plt.axis('off')
+    plt.show()
+
+    x = img / 255.0   # or use preprocess_input if used in training
+    x = np.expand_dims(x, axis=0)
+
+    explainer = GradCAM()
+
+    grid = explainer.explain(
+        validation_data=(x, np.array([0])),
+        model=model,
+        layer_name="conv2d_93",  # make sure this layer exists
+        class_index=None
+    )
+
+    plt.imshow(grid)
+    plt.axis('off')
+    plt.show()
+
+# Main Execution
+print(predict_from_image_path('/c
+ontent/drive/MyDrive/Fish_Disease_Project_Backup/Freshwater Fish Disease Aquaculture in south asia/Test/Parasitic diseases/Parasitic diseases (110).jpg'))
+grad_CAM('/content/drive/MyDrive/Fish_Disease_Project_Backup/Freshwater Fish Disease Aquaculture in south asia/Test/Parasitic diseases/Parasitic diseases (110).jpg')
