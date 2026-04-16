@@ -1,0 +1,92 @@
+import pickle
+import numpy as np
+from tensorflow.keras.models import load_model, Model
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+from nltk.translate.bleu_score import corpus_bleu
+import tqdm
+import tensorflow as tf # Import TensorFlow
+from tensorflow.keras.layers import Input, Dense, LSTM, Embedding, Dropout, add
+
+# 2. Load the Tokenizer
+with open('/content/drive/MyDrive/cv_assignment2_hosted/image caption generator Assignment 2/Fish_Project_Complete_Backup/tokenizer.pkl', 'rb') as f:
+    tokenizer = pickle.load(f)
+
+# 3. Load the Features
+with open('/content/drive/MyDrive/cv_assignment2_hosted/image caption generator Assignment 2/Fish_Project_Complete_Backup/caption_features.pkl', 'rb') as f:
+    all_features = pickle.load(f)
+
+# 4. Set constants
+max_length = 34  # This should match the max_length from your training
+vocab_size = len(tokenizer.word_index) + 1 # Re-calculate vocab_size
+
+# 1. Re-create the Model Architecture (from cell 8iDxOjDrAKa7)
+
+# Image Feature Encoder
+inputs1 = Input(shape=(2048,))
+fe1 = Dropout(0.5)(inputs1)
+fe2 = Dense(256, activation='relu')(fe1)
+
+# Sequence Decoder
+inputs2 = Input(shape=(max_length,))
+se1 = Embedding(vocab_size, 256, mask_zero=True)(inputs2)
+se2 = Dropout(0.5)(se1)
+se3 = LSTM(256)(se2)
+
+# Merge Layer
+decoder1 = add([fe2, se3])
+decoder2 = Dense(256, activation='relu')(decoder1)
+outputs = Dense(vocab_size, activation='softmax')(decoder2)
+
+model = Model(inputs=[inputs1, inputs2], outputs=outputs)
+model.compile(loss='categorical_crossentropy', optimizer='adam') # Compile the model
+
+# Load only the weights into the re-created model
+model.load_weights('/content/drive/MyDrive/cv_assignment2_hosted/image caption generator Assignment 2/Fish_Project_Complete_Backup/fish_disease_caption_generator.h5')
+
+print("Model architecture re-created and weights loaded successfully.")
+
+
+from tensorflow.keras.applications import ResNet50 # Changed VGG16 to ResNet50
+from tensorflow.keras.preprocessing.image import load_img, img_to_array
+from tensorflow.keras.applications.resnet50 import preprocess_input # Corrected import for ResNet50
+from tensorflow.keras.models import Model # Ensure Model is imported if not already
+
+def extract_features(filename):
+	# load the model
+	model = ResNet50(weights='imagenet', include_top=False, pooling='avg') # Use ResNet50 and pooling='avg' for 2048 features
+	# re-structure the model (not needed with pooling='avg')
+	# load the photo
+	image = load_img(filename, target_size=(224, 224))
+	# convert the image pixels to a numpy array
+	image = img_to_array(image)
+	# reshape data for the model
+	image = image.reshape((1, image.shape[0], image.shape[1], image.shape[2]))
+	# prepare the image for the ResNet model
+	image = preprocess_input(image)
+	# get features
+	feature = model.predict(image, verbose=0)
+	return feature
+
+def generate_caption(model, tokenizer, feature, max_length):
+    in_text = 'startseq'
+    for i in range(max_length):
+        sequence = tokenizer.texts_to_sequences([in_text])[0]
+        # Use post-padding for compatibility with cuDNN LSTM masking
+        sequence = pad_sequences([sequence], maxlen=max_length, padding='post')
+
+        # Predict probability for all words
+        yhat = model.predict([feature.reshape(1, 2048), sequence], verbose=0)
+        yhat = np.argmax(yhat)
+
+        word = tokenizer.index_word.get(yhat)
+        if word is None or word == 'endseq':
+            break
+        in_text += ' ' + word
+
+    return in_text.replace('startseq ', '')
+
+
+#✅ BLEU-1: 0.4845
+#✅ BLEU-2: 0.4086
+
+generate_caption(model, tokenizer, extract_features('/content/fd.jpg'), 34 )
