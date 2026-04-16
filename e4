@@ -36,3 +36,7 @@ from tensorflow.keras.preprocessing.image import load_img
 from tensorflow.keras.applications.resnet50 import preprocess_input
 from tensorflow.keras.applications.inception_v3 import preprocess_input
 from tensorflow.keras.applications.xception import preprocess_input
+
+DenseNet / ResNet / VGG → 224×224
+Inception family / Xception → 299×299
+#see to that the names are correct.
