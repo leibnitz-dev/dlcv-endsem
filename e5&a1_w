@@ -1,0 +1,49 @@
+from tensorflow.keras.preprocessing.image import load_img, img_to_array
+from tensorflow.keras.applications.inception_v3 import preprocess_input
+import numpy as np
+import matplotlib.pyplot as plt
+from tensorflow.keras.models import load_model
+
+class_names= ['Bacterial Red disease', 'Bacterial diseases - Aeromoniasis', 'Bacterial gill disease', 'Fungal diseases Saprolegniasis', 'Healthy Fish', 'Parasitic diseases', 'Viral diseases White tail disease']
+
+MODEL_PATH = '/content/drive/MyDrive/cv_assignment2_hosted/ EX-5. Training a Pre-trained CNN Models using transfer learning with a target dataset to create a trained model and to do the Multi-Class Classification Using the Trained Model                                             /transfer_learning_experiment_5.keras'
+IMAGE_PATH = '/content/sap.jpg'
+
+def predict_image(img_path):
+    model = load_model(MODEL_PATH)
+
+    img = load_img(img_path, target_size=(299,299))
+    x = img_to_array(img)
+    x = np.expand_dims(x, axis=0)
+    x = preprocess_input(x) 
+
+    preds = model.predict(x)
+    idx = np.argmax(preds[0])
+    conf = np.max(preds[0]) * 100
+
+    plt.imshow(img)
+    plt.title(f"{class_names[idx]} ({conf:.2f}%)")
+    plt.axis('off')
+    plt.show()
+
+    print("Prediction:", class_names[idx], "| Confidence:", conf)
+
+predict_image(IMAGE_PATH)
+
+!pip install pycm
+from pycm import ConfusionMatrix
+
+test_dir = '/content/data/Freshwater Fish Disease Aquaculture in south asia/Test'
+
+test_datagen = ImageDataGenerator(rescale=1./255)
+
+test_generator = test_datagen.flow_from_directory(
+    test_dir, target_size=IMG_SIZE, batch_size=BATCH_SIZE,
+    class_mode='categorical', shuffle=False
+)
+
+y_true = test_generator.classes
+y_pred = np.argmax(model.predict(test_generator), axis=1)
+
+cm = ConfusionMatrix(actual_vector=y_true, predict_vector=y_pred)
+print(cm)
